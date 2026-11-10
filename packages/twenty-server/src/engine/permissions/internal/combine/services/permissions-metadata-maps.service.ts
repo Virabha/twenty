@@ -35,13 +35,11 @@ export class PermissionsMetadataMapsService {
       flatFieldMetadataMapsOrm,
       featureFlagsMap,
       rolesPermissions,
-      flatApplicationMaps,
     } = await this.workspaceCacheService.getOrRecompute(workspaceId, [
       'flatObjectMetadataMaps',
       'flatFieldMetadataMapsOrm',
       'featureFlagsMap',
       'rolesPermissions',
-      'flatApplicationMaps',
     ]);
 
     const metadataMaps: PermissionsMetadataMaps = {
@@ -49,7 +47,6 @@ export class PermissionsMetadataMapsService {
       flatFieldMetadataMaps: flatFieldMetadataMapsOrm,
       featureFlagsMap,
       rolesPermissions,
-      flatApplicationMaps,
     };
 
     if (findWorkspaceMemberBoundPredicates(rolesPermissions).length === 0) {

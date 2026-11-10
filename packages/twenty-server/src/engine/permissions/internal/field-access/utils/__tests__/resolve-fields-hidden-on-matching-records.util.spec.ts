@@ -107,7 +107,6 @@ describe('resolveFieldsHiddenOnMatchingRecords', () => {
             flatEntityMaps: createEmptyFlatEntityMaps(),
           }),
           flatFieldMetadataMaps,
-          flatApplicationMaps: { byId: {} },
           featureFlagsMap: {},
           rolesPermissions: {
             [MEMBER_ROLE_ID]: {

@@ -337,7 +337,6 @@ describe('resolveAiRunPermissionScope', () => {
                 },
               },
             },
-            flatApplicationMaps: { byId: {} },
             featureFlagsMap: {},
           },
           flatObjectMetadata: flatObjectMetadataMaps.byUniversalIdentifier
