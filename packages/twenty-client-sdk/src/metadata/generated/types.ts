@@ -1083,11 +1083,11 @@ export default {
             "frontComponents": [
                 297
             ],
+            "grantRoleId": [
+                550
+            ],
             "grantedIframeMediaPermissions": [
                 319
-            ],
-            "grantedRoleId": [
-                548
             ],
             "healthCheckLogicFunctionId": [
                 550
