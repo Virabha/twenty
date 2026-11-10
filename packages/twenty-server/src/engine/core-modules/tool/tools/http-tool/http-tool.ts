@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 
 import { FeatureFlagKey } from 'twenty-shared/types';
 
+import { CoreEntityCacheService } from 'src/engine/core-entity-cache/services/core-entity-cache.service';
 import { FeatureFlagService } from 'src/engine/core-modules/feature-flag/services/feature-flag.service';
 import { LOGIC_FUNCTION_DRIVER_FACTORY_TOKEN } from 'src/engine/core-modules/logic-function/logic-function-drivers/constants/logic-function-driver-factory.token';
 import { type LogicFunctionDriverFactory } from 'src/engine/core-modules/logic-function/logic-function-drivers/logic-function-driver.factory';
@@ -21,6 +22,7 @@ import { type ToolInput } from 'src/engine/core-modules/tool/types/tool-input.ty
 import { type ToolOutput } from 'src/engine/core-modules/tool/types/tool-output.type';
 import { type ToolExecutionContext } from 'src/engine/core-modules/tool/types/tool-execution-context.type';
 import { type Tool } from 'src/engine/core-modules/tool/types/tool.type';
+import { isWorkspaceActive } from 'src/engine/core-modules/workspace/utils/is-workspace-active.util';
 
 @Injectable()
 export class HttpTool implements Tool {
@@ -33,6 +35,7 @@ export class HttpTool implements Tool {
     private readonly secureHttpClientService: SecureHttpClientService,
     private readonly logicFunctionExecutionThrottleService: LogicFunctionExecutionThrottleService,
     private readonly featureFlagService: FeatureFlagService,
+    private readonly coreEntityCacheService: CoreEntityCacheService,
     @Inject(LOGIC_FUNCTION_DRIVER_FACTORY_TOKEN)
     private readonly logicFunctionDriverFactory: LogicFunctionDriverFactory,
   ) {}
@@ -53,6 +56,19 @@ export class HttpTool implements Tool {
     }
 
     const input = parsedInput.data;
+
+    const workspace = await this.coreEntityCacheService.get(
+      'workspaceEntity',
+      context.workspaceId,
+    );
+
+    if (!isWorkspaceActive(workspace)) {
+      return {
+        success: false,
+        message: `HTTP ${input.method} request to ${input.url} failed`,
+        error: 'HTTP requests can only be sent from an active workspace.',
+      };
+    }
 
     const hasExecutionToken =
       await this.logicFunctionExecutionThrottleService.consumeToken(

@@ -235,6 +235,7 @@ export class ApplicationUninstallService {
         workspaceId,
         payload,
         shouldEnforceUsageLimits: false,
+        isApplicationLifecycleHook: true,
         ...(isDefined(workspaceDeletionRequestTimestamp)
           ? { workspaceDeletionRequestTimestamp }
           : {}),

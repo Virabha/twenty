@@ -18,6 +18,7 @@ import {
   type LogicFunctionRetryContext,
 } from 'twenty-shared/logic-function';
 import { isDefined } from 'twenty-shared/utils';
+import { isWorkspaceProvisioned } from 'twenty-shared/workspace';
 import { Repository } from 'typeorm';
 import { v4 } from 'uuid';
 
@@ -27,6 +28,7 @@ import {
   type LogicFunctionTranspileResult,
 } from 'src/engine/core-modules/logic-function/logic-function-drivers/interfaces/logic-function-driver.interface';
 
+import { CoreEntityCacheService } from 'src/engine/core-entity-cache/services/core-entity-cache.service';
 import { isBillingExemptApplication } from 'src/engine/core-modules/application/application-marketplace/utils/is-billing-exempt-application.util';
 import { ApplicationRegistrationVariableService } from 'src/engine/core-modules/application/application-registration-variable/application-registration-variable.service';
 import { ApplicationStopService } from 'src/engine/core-modules/application/application-stop/application-stop.service';
@@ -60,6 +62,7 @@ import { UsageOperationType } from 'src/engine/core-modules/usage/enums/usage-op
 import { UsageResourceType } from 'src/engine/core-modules/usage/enums/usage-resource-type.enum';
 import { type UsageSpenders } from 'src/engine/core-modules/usage/types/usage-spenders.type';
 import { resolveWorkspaceMemberIdForUser } from 'src/engine/core-modules/user/utils/resolve-workspace-member-id-for-user.util';
+import { isWorkspaceActive } from 'src/engine/core-modules/workspace/utils/is-workspace-active.util';
 import { WorkspaceEntity } from 'src/engine/core-modules/workspace/workspace.entity';
 import { findFlatEntityByIdInFlatEntityMaps } from 'src/engine/metadata-modules/flat-entity/utils/find-flat-entity-by-id-in-flat-entity-maps.util';
 import { LogicFunctionExecutionMode } from 'src/engine/metadata-modules/logic-function/logic-function.entity';
@@ -136,6 +139,7 @@ export class LogicFunctionExecutorService {
     private readonly workspaceDomainsService: WorkspaceDomainsService,
     private readonly applicationService: ApplicationService,
     private readonly applicationStopService: ApplicationStopService,
+    private readonly coreEntityCacheService: CoreEntityCacheService,
     @InjectRepository(WorkspaceEntity)
     private readonly workspaceRepository: Repository<WorkspaceEntity>,
   ) {}
@@ -179,6 +183,7 @@ export class LogicFunctionExecutorService {
     workspaceDeletionRequestTimestamp?: string;
     retry?: LogicFunctionRetryContext;
     shouldEnforceUsageLimits?: boolean;
+    isApplicationLifecycleHook?: boolean;
   }): Promise<LogicFunctionExecuteResult> {
     const { flatApplication, flatLogicFunction, flatApplicationVariableMaps } =
       await this.getFlatEntitiesOrThrow({
@@ -249,15 +254,20 @@ export class LogicFunctionExecutorService {
 
   private async executeResolved({
     shouldEnforceUsageLimits = true,
+    isApplicationLifecycleHook = false,
     ...executionArgs
   }: ExecutionArgs & {
     shouldEnforceUsageLimits?: boolean;
+    isApplicationLifecycleHook?: boolean;
   }): Promise<LogicFunctionExecuteResult> {
     await this.admitExecution({
       workspaceId: executionArgs.workspaceId,
       flatApplication: executionArgs.flatApplication,
       spenders: executionArgs.spenders,
+      workspaceDeletionRequestTimestamp:
+        executionArgs.workspaceDeletionRequestTimestamp,
       shouldEnforceUsageLimits,
+      isApplicationLifecycleHook,
     });
 
     return this.executeAdmitted(executionArgs);
@@ -267,10 +277,25 @@ export class LogicFunctionExecutorService {
     workspaceId,
     flatApplication,
     spenders,
+    workspaceDeletionRequestTimestamp,
     shouldEnforceUsageLimits = true,
-  }: Pick<ExecutionArgs, 'workspaceId' | 'flatApplication' | 'spenders'> & {
+    isApplicationLifecycleHook = false,
+  }: Pick<
+    ExecutionArgs,
+    | 'workspaceId'
+    | 'flatApplication'
+    | 'spenders'
+    | 'workspaceDeletionRequestTimestamp'
+  > & {
     shouldEnforceUsageLimits?: boolean;
+    isApplicationLifecycleHook?: boolean;
   }): Promise<void> {
+    await this.assertWorkspaceCanRunLogicFunctions({
+      workspaceId,
+      workspaceDeletionRequestTimestamp,
+      isApplicationLifecycleHook,
+    });
+
     // Before the shared workspace throttle so a stopped app's flood cannot drain other apps' token bucket.
     await this.assertApplicationNotStopped(flatApplication);
 
@@ -370,6 +395,41 @@ export class LogicFunctionExecutorService {
     const driver = this.logicFunctionDriverFactory.getCurrentDriver();
 
     return driver.transpile(params);
+  }
+
+  private async assertWorkspaceCanRunLogicFunctions({
+    workspaceId,
+    workspaceDeletionRequestTimestamp,
+    isApplicationLifecycleHook,
+  }: {
+    workspaceId: string;
+    workspaceDeletionRequestTimestamp: string | undefined;
+    isApplicationLifecycleHook: boolean;
+  }): Promise<void> {
+    // Uninstall hooks run after the workspace is soft deleted, so it is no longer cached
+    if (isDefined(workspaceDeletionRequestTimestamp)) {
+      return;
+    }
+
+    const workspace = await this.coreEntityCacheService.get(
+      'workspaceEntity',
+      workspaceId,
+    );
+
+    // Pre-installed apps are installed on activation, before a billed workspace subscribes and becomes ACTIVE
+    const canRunLogicFunctions = isApplicationLifecycleHook
+      ? isWorkspaceProvisioned(workspace)
+      : isWorkspaceActive(workspace);
+
+    if (!canRunLogicFunctions) {
+      throw new LogicFunctionException(
+        `Workspace ${workspaceId} is not active`,
+        LogicFunctionExceptionCode.LOGIC_FUNCTION_DISABLED,
+        {
+          userFriendlyMessage: msg`Logic functions can only run in an active workspace.`,
+        },
+      );
+    }
   }
 
   private async assertApplicationNotStopped(

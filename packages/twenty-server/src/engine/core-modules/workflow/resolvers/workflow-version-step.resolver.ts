@@ -32,6 +32,7 @@ import { ConnectedAccountHandleDTO } from 'src/engine/metadata-modules/connected
 import { findFlatEntityByIdInFlatEntityMaps } from 'src/engine/metadata-modules/flat-entity/utils/find-flat-entity-by-id-in-flat-entity-maps.util';
 import { LogicFunctionExecutionResultDTO } from 'src/engine/metadata-modules/logic-function/dtos/logic-function-execution-result.dto';
 import { fromLogicFunctionExecuteResultToDTO } from 'src/engine/metadata-modules/logic-function/utils/from-logic-function-execute-result-to-dto.util';
+import { logicFunctionGraphQLApiExceptionHandler } from 'src/engine/metadata-modules/logic-function/utils/logic-function-graphql-api-exception-handler.utils';
 import { PermissionsGraphqlApiExceptionFilter } from 'src/engine/permissions/utils/permissions-graphql-api-exception.filter';
 import { WorkspaceCacheService } from 'src/engine/workspace-cache/services/workspace-cache.service';
 import {
@@ -255,16 +256,20 @@ export class WorkflowVersionStepResolver {
         workflowVersionId,
       });
 
-    const result = await this.codeStepRunnerService.run({
-      flatApplication,
-      code,
-      payload,
-      userId,
-      userWorkspaceId,
-      workflowId,
-    });
+    try {
+      const result = await this.codeStepRunnerService.run({
+        flatApplication,
+        code,
+        payload,
+        userId,
+        userWorkspaceId,
+        workflowId,
+      });
 
-    return fromLogicFunctionExecuteResultToDTO(result);
+      return fromLogicFunctionExecuteResultToDTO(result);
+    } catch (error) {
+      return logicFunctionGraphQLApiExceptionHandler(error);
+    }
   }
 
   private async findWorkflowApplicationOrThrow({

@@ -688,6 +688,7 @@ export class ApplicationInstallService {
       logicFunctionId: flatLogicFunction.id,
       workspaceId,
       payload,
+      isApplicationLifecycleHook: true,
     });
 
     if (!isDefined(result)) {
@@ -839,6 +840,7 @@ export class ApplicationInstallService {
       logicFunctionId: flatLogicFunction.id,
       workspaceId,
       payload,
+      isApplicationLifecycleHook: true,
     });
 
     if (!isDefined(result)) {

@@ -42,10 +42,12 @@ export class LogicFunctionJobRunnerService {
     logicFunctionPayload,
     retryLimit,
     persistRetryCount,
+    isApplicationLifecycleHook = false,
   }: {
     logicFunctionPayload: LogicFunctionJobPayload;
     retryLimit: number;
     persistRetryCount: (applicationRetryCount: number) => Promise<void>;
+    isApplicationLifecycleHook?: boolean;
   }): Promise<void> {
     try {
       const retryCount = logicFunctionPayload.applicationRetryCount ?? 0;
@@ -61,6 +63,7 @@ export class LogicFunctionJobRunnerService {
           userId: logicFunctionPayload.userId,
           userWorkspaceId: logicFunctionPayload.userWorkspaceId,
           retry: { retryCount, maxRetries },
+          isApplicationLifecycleHook,
         });
 
       if (
@@ -78,8 +81,8 @@ export class LogicFunctionJobRunnerService {
         logicFunctionExecutionResult.error.errorMessage,
       );
     } catch (error) {
-      // A stopped application must not fail the job: failing would make
-      // the queue retry an execution that is intentionally blocked.
+      // A stopped application or an inactive workspace must not fail the job:
+      // failing would make the queue retry an execution that is intentionally blocked.
       if (
         error instanceof LogicFunctionException &&
         error.code === LogicFunctionExceptionCode.LOGIC_FUNCTION_DISABLED

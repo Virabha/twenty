@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { CoreEntityCacheModule } from 'src/engine/core-entity-cache/core-entity-cache.module';
 import { ApplicationModule } from 'src/engine/core-modules/application/application.module';
 import { TokenModule } from 'src/engine/core-modules/auth/token/token.module';
 import { FeatureFlagModule } from 'src/engine/core-modules/feature-flag/feature-flag.module';
@@ -43,6 +44,7 @@ import { WorkspaceCacheModule } from 'src/engine/workspace-cache/workspace-cache
     SecureHttpClientModule,
     LogicFunctionExecutionThrottleModule,
     WorkspaceCacheModule,
+    CoreEntityCacheModule,
   ],
   providers: [
     HttpTool,
