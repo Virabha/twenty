@@ -297,6 +297,8 @@ import { AddViewShouldDisplayGroupsAsTabsFastInstanceCommand } from 'src/databas
 import { AddRemoteOriginToFileFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-58/2-58-instance-command-fast-1794243399000-add-remote-origin-to-file';
 import { AddAvatarToAgentFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-58/2-58-instance-command-fast-1794298452467-add-avatar-to-agent';
 import { AddWorkflowAndAgentNavigationMenuItemsFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-58/2-58-instance-command-fast-1794298453467-add-workflow-and-agent-navigation-menu-items';
+import { AddConsentIdToApplicationAuthorizationFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-58/2-58-instance-command-fast-1794298930711-add-consent-id-to-application-authorization';
+import { MoveClaudeAndChatGptToTheirAppPackagesSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-58/2-58-instance-command-slow-1794298930712-move-claude-and-chatgpt-to-their-app-packages';
 
 export const INSTANCE_COMMANDS = [
   AddViewFieldGroupIdIndexOnViewFieldFastInstanceCommand,
@@ -596,4 +598,6 @@ export const INSTANCE_COMMANDS = [
   AddRemoteOriginToFileFastInstanceCommand,
   AddAvatarToAgentFastInstanceCommand,
   AddWorkflowAndAgentNavigationMenuItemsFastInstanceCommand,
+  AddConsentIdToApplicationAuthorizationFastInstanceCommand,
+  MoveClaudeAndChatGptToTheirAppPackagesSlowInstanceCommand,
 ];
