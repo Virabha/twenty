@@ -8,7 +8,7 @@ FROM twentycrm/twenty:${TWENTY_VERSION}
 USER root
 # Fail the build if the compiled constant moves, so an upgrade can't silently drop the patch.
 RUN set -e; \
-    files=$(grep -rlE --include='*.js' 'MAX_WORKSPACES_WITHOUT_ENTERPRISE_KEY *= *5\b' /app/packages/twenty-server/dist || true); \
+    files=$(find /app/packages/twenty-server/dist -name '*.js' -exec grep -lE 'MAX_WORKSPACES_WITHOUT_ENTERPRISE_KEY *= *5\b' {} + || true); \
     if [ -z "$files" ]; then echo "workspace cap constant not found; update the patch" >&2; exit 1; fi; \
     sed -i -E 's/(MAX_WORKSPACES_WITHOUT_ENTERPRISE_KEY *= *)5\b/\1Number(process.env.MAX_WORKSPACES_WITHOUT_ENTERPRISE_KEY ?? 5)/' $files; \
     grep -c 'process.env.MAX_WORKSPACES_WITHOUT_ENTERPRISE_KEY' $files
